@@ -2,9 +2,6 @@
 
 extern crate alloc;
 
-#[cfg(feature = "std")]
-extern crate std;
-
 use io::console::Console;
 use rhai::Engine;
 
