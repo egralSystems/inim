@@ -1,12 +1,11 @@
 use alloc::string::String;
 
-pub trait File {
+pub trait File: Clone {
     fn open(path: &str, options: &str) -> Self;
     fn close(&mut self);
 
     fn seek(&mut self, offset: usize);
     fn step(&mut self, step: i64);
-    fn rewind(&mut self);
 
     fn read_all(&mut self) -> String;
     fn read_char(&mut self) -> char;

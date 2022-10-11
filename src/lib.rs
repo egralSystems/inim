@@ -5,7 +5,7 @@ extern crate alloc;
 use core::marker::PhantomData;
 
 use alloc::{format, string::String, vec::Vec};
-use io::{console::Console, fs::File};
+use io::{console::Console, fs::File, sys::Sys};
 use module_resolver::InimModuleResolver;
 use rhai::{packages::Package, Engine, Module, Scope};
 use rhai_rand::RandomPackage;
@@ -14,27 +14,32 @@ use rhai_sci::SciPackage;
 pub mod io;
 mod module_resolver;
 
-pub struct InimFactory<C, F>
+pub struct InimFactory<C, F, S>
 where
     C: Console + 'static,
-    F: File + Clone + 'static,
+    F: File + 'static,
+    S: Sys + 'static,
 {
     mod_resolver: InimModuleResolver<C, F>,
 
     console_phantom: PhantomData<C>,
     f_phantom: PhantomData<F>,
+    sys_phantom: PhantomData<S>,
 }
 
-impl<C, F> InimFactory<C, F>
+impl<C, F, S> InimFactory<C, F, S>
 where
     C: Console + Clone + 'static,
     F: File + Clone + 'static,
+    S: Sys + 'static,
 {
     pub fn new() -> Self {
         Self {
             mod_resolver: InimModuleResolver::new(),
+
             console_phantom: PhantomData,
             f_phantom: PhantomData,
+            sys_phantom: PhantomData,
         }
     }
 
@@ -43,15 +48,16 @@ where
         self
     }
 
-    pub fn build(&mut self) -> Inim<C, F> {
+    pub fn build(&mut self) -> Inim<C, F, S> {
         Inim::new(self.mod_resolver.clone())
     }
 }
 
-pub struct Inim<'a, C, F>
+pub struct Inim<'a, C, F, S>
 where
-    C: Console + Clone + 'static,
-    F: File + Clone + 'static,
+    C: Console + 'static,
+    F: File + 'static,
+    S: Sys + 'static,
 {
     engine: Engine,
 
@@ -62,21 +68,27 @@ where
 
     console_phantom: PhantomData<C>,
     f_phantom: PhantomData<F>,
+    sys_phantom: PhantomData<S>,
 }
 
-impl<'a, C, F> Inim<'a, C, F>
+impl<'a, C, F, S> Inim<'a, C, F, S>
 where
-    C: Console + Clone + 'static,
-    F: File + Clone + 'static,
+    C: Console + 'static,
+    F: File + 'static,
+    S: Sys + 'static,
 {
     pub fn new(mod_resolver: InimModuleResolver<C, F>) -> Self {
         let mut inim = Inim {
             engine: Engine::new(),
+
             scopes: Vec::new(),
             current_scope: 0,
+
+            path: "repl",
+
             console_phantom: PhantomData,
             f_phantom: PhantomData,
-            path: "repl",
+            sys_phantom: PhantomData,
         };
 
         // Setup packages
@@ -107,11 +119,19 @@ where
             .register_fn("close", F::close)
             .register_fn("seek", F::seek)
             .register_fn("step", F::step)
-            .register_fn("rewind", F::rewind)
             .register_fn("read", F::read_all)
             .register_fn("read", F::read_until)
             .register_fn("read", F::read_amount)
             .register_fn("write", F::write);
+
+        // Register Sys
+        inim.engine
+            .register_fn("ls", S::ls)
+            .register_fn("rm", S::rm)
+            .register_fn("mkdir", S::mkdir)
+            .register_fn("rmdir", S::rmdir)
+            .register_fn("time", S::time)
+            .register_fn("path", S::path);
 
         // Add default scope
         inim.scopes.push(Scope::<'a>::new());

@@ -1,15 +1,63 @@
-use std::{cell::RefCell, fs::File, io::Read, os::unix::prelude::FileExt, path::Path, rc::Rc};
-
-use inim::{
-    io::{console::Console, fs},
-    InimFactory,
+use std::{
+    cell::RefCell,
+    env::current_dir,
+    fs::{create_dir_all, read_dir, remove_dir, remove_file, File},
+    io::Read,
+    os::unix::prelude::FileExt,
+    path::Path,
+    rc::Rc,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
+use inim::{
+    io::{console::Console, fs, sys::Sys},
+    InimFactory,
+};
+use rhai::Dynamic;
+
 fn main() {
-    let mut inim_fac = InimFactory::<LinuxConsole, LinuxFile>::new();
+    let mut inim_fac = InimFactory::<LinuxConsole, LinuxFile, LinuxSys>::new();
     let mut inim = inim_fac.build();
 
     inim.run_file("test.rhai");
+}
+
+#[derive(Clone)]
+struct LinuxSys;
+
+impl Sys for LinuxSys {
+    fn ls(path: &str) -> Vec<Dynamic> {
+        let mut table: Vec<Dynamic> = Vec::new();
+
+        for file in read_dir(path).unwrap() {
+            table.push(Dynamic::from(file.unwrap().path().display().to_string()));
+        }
+
+        table
+    }
+
+    fn mkdir(path: &str) -> bool {
+        create_dir_all(path).is_ok()
+    }
+
+    fn rm(path: &str) -> bool {
+        remove_file(path).is_ok()
+    }
+
+    fn rmdir(path: &str) -> bool {
+        remove_dir(path).is_ok()
+    }
+
+    fn time() -> f64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs_f64()
+    }
+
+    fn path() -> String {
+        current_dir().unwrap().display().to_string()
+    }
 }
 
 #[derive(Clone)]
@@ -73,10 +121,6 @@ impl fs::File for LinuxFile {
         self.offset += 1;
 
         buf[0] as char
-    }
-
-    fn rewind(&mut self) {
-        self.offset = 0;
     }
 
     fn seek(&mut self, offset: usize) {
