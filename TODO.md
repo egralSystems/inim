@@ -1,6 +1,6 @@
 # TODO:
 - [ ] MVP
-  - [ ] Custom module resolver.
+  - [x] Custom module resolver.
   - [x] Executing from files.
   - [x] File I/O.
   - [ ] System I/O.

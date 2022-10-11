@@ -18,8 +18,8 @@ impl Console for LinuxConsole {
         println!("{}", text);
     }
 
-    fn debug(text: &str, _source: Option<&str>, _position: rhai::Position) {
-        println!("Debug: {}", text);
+    fn debug(text: &str) {
+        println!("{}", text);
     }
 }
 

@@ -4,13 +4,15 @@ extern crate alloc;
 
 use core::marker::PhantomData;
 
-use alloc::vec::Vec;
+use alloc::{format, vec::Vec};
 use io::{console::Console, fs::File};
+use module_resolver::InimModuleResolver;
 use rhai::{packages::Package, Engine, Scope};
 use rhai_rand::RandomPackage;
 use rhai_sci::SciPackage;
 
 pub mod io;
+mod module_resolver;
 
 pub struct Inim<'a, C, F>
 where
@@ -21,8 +23,10 @@ where
     scopes: Vec<Scope<'a>>,
     current_scope: usize,
 
+    source: &'a str,
+
     console_phantom: PhantomData<C>,
-    fs_phantom: PhantomData<F>,
+    f_phantom: PhantomData<F>,
 }
 
 impl<'a, C, F> Inim<'a, C, F>
@@ -36,17 +40,30 @@ where
             scopes: Vec::new(),
             current_scope: 0,
             console_phantom: PhantomData,
-            fs_phantom: PhantomData,
+            f_phantom: PhantomData,
+            source: "repl",
         };
 
         // Setup packages
         inim.engine
             .register_global_module(SciPackage::new().as_shared_module())
-            .register_global_module(RandomPackage::new().as_shared_module());
+            .register_global_module(RandomPackage::new().as_shared_module())
+            .set_module_resolver(InimModuleResolver::<C, F>::new());
 
         // Register Console
         inim.engine.on_print(C::print);
-        inim.engine.on_debug(C::debug);
+        inim.engine.on_debug(|text, source, position| {
+            C::debug(
+                format!(
+                    "{}:{}:{} {}",
+                    source.unwrap(),
+                    position.line().unwrap_or(0),
+                    position.position().unwrap_or(0),
+                    text
+                )
+                .as_str(),
+            )
+        });
 
         // Registering FS
         inim.engine
@@ -73,22 +90,57 @@ where
         self
     }
 
-    pub fn run_file(&mut self, path: &str) -> &mut Self {
+    pub fn run_file(&mut self, path: &'a str) -> &mut Self {
         let mut file = F::open(path, "r");
-
         let prog = file.read_all();
-
-        self.run(prog.as_str());
-
         file.close();
+
+        self.source = path;
+        self.run(prog.as_str());
+        self.source = "repl";
 
         self
     }
 
     pub fn run(&mut self, prog: &str) -> &mut Self {
-        self.engine
-            .run_with_scope(&mut self.scopes[self.current_scope], prog)
-            .unwrap(); // TODO: Remove the unwrap()
+        let mut ast = match self
+            .engine
+            .compile_with_scope(&mut self.scopes[self.current_scope], prog)
+        {
+            Ok(ast) => ast,
+            Err(error) => {
+                C::debug(
+                    format!(
+                        "{}:{}:{} Compile error: {:#?}",
+                        self.source,
+                        error.position().line().unwrap_or(0),
+                        error.position().position().unwrap_or(0),
+                        error.err_type()
+                    )
+                    .as_str(),
+                );
+                return self;
+            }
+        };
+
+        ast.set_source(self.source);
+
+        match self
+            .engine
+            .run_ast_with_scope(&mut self.scopes[self.current_scope], &ast)
+        {
+            Ok(_) => {}
+            Err(error) => C::debug(
+                format!(
+                    "{}:{}:{} Compile error: {:#?}",
+                    self.source,
+                    error.position().line().unwrap_or(0),
+                    error.position().position().unwrap_or(0),
+                    error
+                )
+                .as_str(),
+            ),
+        };
 
         self
     }
