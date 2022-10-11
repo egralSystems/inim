@@ -67,6 +67,9 @@ where
             return Ok(em);
         }
 
+        let path = format!("{}.rhai", path);
+        let path = path.as_str();
+
         let mut src = F::open(path, "r");
         let mut ast = match engine.compile(src.read_all()) {
             Ok(ast) => ast,
