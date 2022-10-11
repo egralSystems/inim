@@ -6,25 +6,30 @@ use inim::{
 };
 
 fn main() {
-    let mut inim = Inim::new();
+    let mut inim = Inim::<LinuxConsole, LinuxFile>::new();
 
-    let mut console = Console::new();
-    console
-        .set_print(|text| println!("{}", text))
-        .set_debug(|text, _, _| println!("Debug: {}", text));
+    inim.run_file("test.rhai");
+}
 
-    inim.register_console(console)
-        .register_fs::<Fl>()
-        .run_file::<Fl>("test.rhai");
+struct LinuxConsole;
+
+impl Console for LinuxConsole {
+    fn print(text: &str) {
+        println!("{}", text);
+    }
+
+    fn debug(text: &str, _source: Option<&str>, _position: rhai::Position) {
+        println!("Debug: {}", text);
+    }
 }
 
 #[derive(Clone)]
-struct Fl {
+struct LinuxFile {
     file: Rc<RefCell<File>>,
     offset: u64,
 }
 
-impl fs::File for Fl {
+impl fs::File for LinuxFile {
     fn open(path: &str, options: &str) -> Self {
         let path = Path::new(path);
 
@@ -40,7 +45,7 @@ impl fs::File for Fl {
             .open(path)
             .unwrap();
 
-        Fl {
+        LinuxFile {
             file: Rc::new(RefCell::new(file)),
             offset: 0,
         }
