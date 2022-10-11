@@ -4,26 +4,61 @@ extern crate alloc;
 
 use core::marker::PhantomData;
 
-use alloc::{format, vec::Vec};
+use alloc::{format, string::String, vec::Vec};
 use io::{console::Console, fs::File};
 use module_resolver::InimModuleResolver;
-use rhai::{packages::Package, Engine, Scope};
+use rhai::{packages::Package, Engine, Module, Scope};
 use rhai_rand::RandomPackage;
 use rhai_sci::SciPackage;
 
 pub mod io;
 mod module_resolver;
 
-pub struct Inim<'a, C, F>
+pub struct InimFactory<C, F>
 where
     C: Console + 'static,
     F: File + Clone + 'static,
 {
-    pub engine: Engine,
+    mod_resolver: InimModuleResolver<C, F>,
+
+    console_phantom: PhantomData<C>,
+    f_phantom: PhantomData<F>,
+}
+
+impl<C, F> InimFactory<C, F>
+where
+    C: Console + Clone + 'static,
+    F: File + Clone + 'static,
+{
+    pub fn new() -> Self {
+        Self {
+            mod_resolver: InimModuleResolver::new(),
+            console_phantom: PhantomData,
+            f_phantom: PhantomData,
+        }
+    }
+
+    pub fn register_module(&mut self, path: impl Into<String>, module: Module) -> &mut Self {
+        self.mod_resolver.register_module(path, module);
+        self
+    }
+
+    pub fn build(&mut self) -> Inim<C, F> {
+        Inim::new(self.mod_resolver.clone())
+    }
+}
+
+pub struct Inim<'a, C, F>
+where
+    C: Console + Clone + 'static,
+    F: File + Clone + 'static,
+{
+    engine: Engine,
+
     scopes: Vec<Scope<'a>>,
     current_scope: usize,
 
-    source: &'a str,
+    path: &'a str,
 
     console_phantom: PhantomData<C>,
     f_phantom: PhantomData<F>,
@@ -31,24 +66,24 @@ where
 
 impl<'a, C, F> Inim<'a, C, F>
 where
-    C: Console + 'static,
+    C: Console + Clone + 'static,
     F: File + Clone + 'static,
 {
-    pub fn new() -> Self {
+    pub fn new(mod_resolver: InimModuleResolver<C, F>) -> Self {
         let mut inim = Inim {
             engine: Engine::new(),
             scopes: Vec::new(),
             current_scope: 0,
             console_phantom: PhantomData,
             f_phantom: PhantomData,
-            source: "repl",
+            path: "repl",
         };
 
         // Setup packages
         inim.engine
             .register_global_module(SciPackage::new().as_shared_module())
             .register_global_module(RandomPackage::new().as_shared_module())
-            .set_module_resolver(InimModuleResolver::<C, F>::new());
+            .set_module_resolver(mod_resolver);
 
         // Register Console
         inim.engine.on_print(C::print);
@@ -95,9 +130,9 @@ where
         let prog = file.read_all();
         file.close();
 
-        self.source = path;
+        self.path = path;
         self.run(prog.as_str());
-        self.source = "repl";
+        self.path = "repl";
 
         self
     }
@@ -112,7 +147,7 @@ where
                 C::debug(
                     format!(
                         "{}:{}:{} Compile error: {:#?}",
-                        self.source,
+                        self.path,
                         error.position().line().unwrap_or(0),
                         error.position().position().unwrap_or(0),
                         error.err_type()
@@ -123,7 +158,7 @@ where
             }
         };
 
-        ast.set_source(self.source);
+        ast.set_source(self.path);
 
         match self
             .engine
@@ -133,7 +168,7 @@ where
             Err(error) => C::debug(
                 format!(
                     "{}:{}:{} Compile error: {:#?}",
-                    self.source,
+                    self.path,
                     error.position().line().unwrap_or(0),
                     error.position().position().unwrap_or(0),
                     error

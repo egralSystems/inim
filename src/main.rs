@@ -2,15 +2,17 @@ use std::{cell::RefCell, fs::File, io::Read, os::unix::prelude::FileExt, path::P
 
 use inim::{
     io::{console::Console, fs},
-    Inim,
+    InimFactory,
 };
 
 fn main() {
-    let mut inim = Inim::<LinuxConsole, LinuxFile>::new();
+    let mut inim_fac = InimFactory::<LinuxConsole, LinuxFile>::new();
+    let mut inim = inim_fac.build();
 
     inim.run_file("test.rhai");
 }
 
+#[derive(Clone)]
 struct LinuxConsole;
 
 impl Console for LinuxConsole {

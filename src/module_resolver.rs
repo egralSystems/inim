@@ -1,15 +1,24 @@
 use core::marker::PhantomData;
 
-use alloc::{boxed::Box, format, string::ToString};
+use alloc::{
+    boxed::Box,
+    collections::BTreeMap,
+    format,
+    rc::Rc,
+    string::{String, ToString},
+};
 use rhai::{EvalAltResult, Module, ModuleResolver, Scope, Shared};
 
 use crate::io::{console::Console, fs::File};
 
+#[derive(Clone)]
 pub struct InimModuleResolver<C, F>
 where
     C: Console + 'static,
     F: File + Clone + 'static,
 {
+    em_modules: BTreeMap<String, Rc<Module>>,
+
     console_phantom: PhantomData<C>,
     f_phantom: PhantomData<F>,
 }
@@ -21,9 +30,24 @@ where
 {
     pub fn new() -> Self {
         Self {
+            em_modules: BTreeMap::new(),
+
             console_phantom: PhantomData,
             f_phantom: PhantomData,
         }
+    }
+
+    pub fn register_module(&mut self, path: impl Into<String>, mut module: Module) -> &mut Self {
+        let path = path.into();
+
+        if module.id().is_none() {
+            module.set_id(path.clone());
+        }
+
+        module.build_index();
+        self.em_modules.insert(path, module.into());
+
+        self
     }
 }
 
@@ -39,6 +63,10 @@ where
         path: &str,
         pos: rhai::Position,
     ) -> Result<Shared<Module>, Box<EvalAltResult>> {
+        if let Some(em) = self.em_modules.get(path).cloned() {
+            return Ok(em);
+        }
+
         let mut src = F::open(path, "r");
         let mut ast = match engine.compile(src.read_all()) {
             Ok(ast) => ast,
