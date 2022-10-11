@@ -69,7 +69,7 @@ impl<'a> Inim<'a> {
     }
 
     pub fn run_file<FS: File + Clone + 'static>(&mut self, path: &str) -> &mut Self {
-        let mut file = FS::open(path);
+        let mut file = FS::open(path, "r");
 
         let prog = file.read_all();
 

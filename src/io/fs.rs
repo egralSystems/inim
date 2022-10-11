@@ -1,7 +1,7 @@
 use alloc::string::String;
 
 pub trait File {
-    fn open(path: &str) -> Self;
+    fn open(path: &str, options: &str) -> Self;
     fn close(&mut self);
 
     fn seek(&mut self, offset: usize);

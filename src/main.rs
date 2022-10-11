@@ -25,13 +25,23 @@ struct Fl {
 }
 
 impl fs::File for Fl {
-    fn open(path: &str) -> Self {
+    fn open(path: &str, options: &str) -> Self {
         let path = Path::new(path);
 
+        let readable = options.contains('r');
+        let writable = options.contains('w');
+        let appendable = options.contains('a');
+
+        let file = File::options()
+            .read(readable)
+            .write(writable)
+            .append(appendable)
+            .create(writable || appendable)
+            .open(path)
+            .unwrap();
+
         Fl {
-            file: Rc::new(RefCell::new(
-                File::options().write(true).read(true).open(path).unwrap(),
-            )),
+            file: Rc::new(RefCell::new(file)),
             offset: 0,
         }
     }
