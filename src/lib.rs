@@ -133,6 +133,8 @@ where
             .register_fn("time", S::time)
             .register_fn("path", S::path);
 
+        // Register Net
+
         // Add default scope
         inim.scopes.push(Scope::<'a>::new());
 
