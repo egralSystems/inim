@@ -1,6 +1,6 @@
 // use core::marker::PhantomData;
 
-use alloc::string::String;
+use std::prelude::v1::*;
 
 #[derive(Clone)]
 pub enum NetError {

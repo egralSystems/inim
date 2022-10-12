@@ -7,3 +7,5 @@ edition = "2021"
 rhai = { version = "1.10.1", features = ["no_std"] }
 rhai-sci = "0.1.7"
 rhai-rand = "0.1.4"
+
+no-std-compat = { version = "0.4.1", features = [ "alloc" ] }

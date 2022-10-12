@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use std::prelude::v1::*;
 use rhai::Dynamic;
 
 pub trait Sys: Clone {

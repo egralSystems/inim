@@ -1,18 +1,22 @@
 #![no_std]
 
-extern crate alloc;
+extern crate no_std_compat as std;
+
+use std::prelude::v1::*;
 
 use core::marker::PhantomData;
 
-use alloc::{format, string::String, vec::Vec};
+//use alloc::{format, string::String, vec::Vec, boxed::Box};
 use io::{console::Console, fs::File, sys::Sys};
 use module_resolver::InimModuleResolver;
-use rhai::{packages::Package, Engine, Module, Scope};
+use rhai::{packages::Package, Engine, EvalAltResult, Module, Scope};
 use rhai_rand::RandomPackage;
 use rhai_sci::SciPackage;
 
 pub mod io;
 mod module_resolver;
+
+pub type NativeResult<T> = Result<T, Box<EvalAltResult>>;
 
 pub struct InimFactory<C, F, S>
 where
@@ -148,9 +152,9 @@ where
     }
 
     pub fn run_file(&mut self, path: &'a str) -> &mut Self {
-        let mut file = F::open(path, "r");
-        let prog = file.read_all();
-        file.close();
+        let mut file = F::open(path, "r").unwrap();
+        let prog = file.read_all().unwrap();
+        file.close().unwrap();
 
         self.path = path;
         self.run(prog.as_str());
