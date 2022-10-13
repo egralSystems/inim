@@ -7,7 +7,7 @@ pub enum NetError {
     Timeout,
 }
 
-pub trait Socket: Clone {
+pub trait Socket: Clone + 'static {
     fn tcp() -> Self; // Create TCP socket
     fn udp() -> Self; // Create UDP socket
 
@@ -24,7 +24,7 @@ pub trait Socket: Clone {
     fn close(&mut self); // Close socket
 }
 
-pub trait Request: Clone {} // TODO
+pub trait Request: Clone + 'static {} // TODO
 
 // pub trait Net: Clone + Socket {}
 // #[derive(Clone)]

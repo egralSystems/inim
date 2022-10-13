@@ -1,59 +1,30 @@
-use core::marker::PhantomData;
 use std::prelude::v1::*;
 
-use rhai::plugin::*;
+pub trait File: Clone + 'static {
+    fn open(path: &str, options: &str) -> Self;
+    fn close(&mut self);
 
-use crate::NativeResult;
+    fn seek(&mut self, offset: usize);
+    fn step(&mut self, step: i64);
 
-pub struct FileModule<F: File + 'static> {
-    _file_phantom: PhantomData<F>
-}
+    fn read_all(&mut self) -> String;
+    fn read_char(&mut self) -> char;
 
-impl<F: File + 'static> FileModule<F> {
-    pub fn new() -> Module {
-        let mut fmod = Module::new();
-
-        fmod.set_id("file");
-
-        fmod.set_custom_type::<F>("File");
-        fmod.set_native_fn("open", F::open);
-        fmod.set_native_fn("close", F::close);
-        fmod.set_native_fn("seek", F::seek);
-        fmod.set_native_fn("step", F::step);
-        fmod.set_native_fn("read", F::read_all);
-        fmod.set_native_fn("read", F::read_amount);
-        fmod.set_native_fn("read", F::read_until);
-
-        fmod.build_index();
-        fmod
-    }
-}
-
-pub trait File: Clone {
-    fn open(path: &str, options: &str) -> NativeResult<Self>;
-    fn close(&mut self) -> NativeResult<()>;
-
-    fn seek(&mut self, offset: usize) -> NativeResult<()>;
-    fn step(&mut self, step: i64) -> NativeResult<()>;
-
-    fn read_all(&mut self) -> NativeResult<String>;
-    fn read_char(&mut self) -> NativeResult<char>;
-
-    fn read_amount(&mut self, amount: usize) -> NativeResult<String> {
+    fn read_amount(&mut self, amount: usize) -> String {
         let mut output = String::new();
 
         for _ in 0..amount {
-            output.push(self.read_char()?);
+            output.push(self.read_char());
         }
 
-        Ok(output)
+        output
     }
 
-    fn read_until(&mut self, stop: char) -> NativeResult<String> {
+    fn read_until(&mut self, stop: char) -> String {
         let mut output = String::new();
 
         loop {
-            let ch = self.read_char()?;
+            let ch = self.read_char();
 
             if ch == stop {
                 break;
@@ -62,8 +33,8 @@ pub trait File: Clone {
             output.push(ch);
         }
 
-        Ok(output)
+        output
     }
 
-    fn write(&mut self, text: &str) -> NativeResult<()>;
+    fn write(&mut self, text: &str);
 }

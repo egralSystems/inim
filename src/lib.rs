@@ -6,23 +6,20 @@ use std::prelude::v1::*;
 
 use core::marker::PhantomData;
 
-//use alloc::{format, string::String, vec::Vec, boxed::Box};
 use io::{console::Console, fs::File, sys::Sys};
 use module_resolver::InimModuleResolver;
-use rhai::{packages::Package, Engine, EvalAltResult, Module, Scope};
+use rhai::{packages::Package, Engine, Module, Scope};
 use rhai_rand::RandomPackage;
 use rhai_sci::SciPackage;
 
 pub mod io;
 mod module_resolver;
 
-pub type NativeResult<T> = Result<T, Box<EvalAltResult>>;
-
 pub struct InimFactory<C, F, S>
 where
-    C: Console + 'static,
-    F: File + 'static,
-    S: Sys + 'static,
+    C: Console,
+    F: File,
+    S: Sys,
 {
     mod_resolver: InimModuleResolver<C, F>,
 
@@ -33,9 +30,9 @@ where
 
 impl<C, F, S> InimFactory<C, F, S>
 where
-    C: Console + Clone + 'static,
-    F: File + Clone + 'static,
-    S: Sys + 'static,
+    C: Console,
+    F: File,
+    S: Sys,
 {
     pub fn new() -> Self {
         Self {
@@ -59,9 +56,9 @@ where
 
 pub struct Inim<'a, C, F, S>
 where
-    C: Console + 'static,
-    F: File + 'static,
-    S: Sys + 'static,
+    C: Console,
+    F: File,
+    S: Sys,
 {
     engine: Engine,
 
@@ -77,9 +74,9 @@ where
 
 impl<'a, C, F, S> Inim<'a, C, F, S>
 where
-    C: Console + 'static,
-    F: File + 'static,
-    S: Sys + 'static,
+    C: Console,
+    F: File,
+    S: Sys,
 {
     pub fn new(mod_resolver: InimModuleResolver<C, F>) -> Self {
         let mut inim = Inim {
@@ -152,9 +149,9 @@ where
     }
 
     pub fn run_file(&mut self, path: &'a str) -> &mut Self {
-        let mut file = F::open(path, "r").unwrap();
-        let prog = file.read_all().unwrap();
-        file.close().unwrap();
+        let mut file = F::open(path, "r");
+        let prog = file.read_all();
+        file.close();
 
         self.path = path;
         self.run(prog.as_str());

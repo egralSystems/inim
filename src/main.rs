@@ -11,7 +11,7 @@ use std::{
 
 use inim::{
     io::{console::Console, fs, sys::Sys},
-    InimFactory, NativeResult,
+    InimFactory,
 };
 use rhai::Dynamic;
 
@@ -80,7 +80,7 @@ struct LinuxFile {
 }
 
 impl fs::File for LinuxFile {
-    fn open(path: &str, options: &str) -> NativeResult<Self> {
+    fn open(path: &str, options: &str) -> Self {
         let path = Path::new(path);
 
         let readable = options.contains('r');
@@ -95,22 +95,21 @@ impl fs::File for LinuxFile {
             .open(path)
             .unwrap();
 
-        Ok(LinuxFile {
+        LinuxFile {
             file: Rc::new(RefCell::new(file)),
             offset: 0,
-        })
+        }
     }
 
-    fn close(&mut self) -> NativeResult<()> {
+    fn close(&mut self) {
         drop(&self.file);
-        OK(())
     }
 
-    fn read_all(&mut self) -> NativeResult<String> {
+    fn read_all(&mut self) -> String {
         let mut buf = String::new();
         self.file.borrow_mut().read_to_string(&mut buf).unwrap();
 
-        Ok(buf)
+        buf
     }
 
     fn read_char(&mut self) -> char {

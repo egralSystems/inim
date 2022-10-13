@@ -1,15 +1,9 @@
-use core::marker::PhantomData;
-
-use alloc::{
-    boxed::Box,
-    collections::BTreeMap,
-    format,
-    rc::Rc,
-    string::{String, ToString},
-};
-use rhai::{EvalAltResult, Module, ModuleResolver, Scope, Shared};
-
 use crate::io::{console::Console, fs::File};
+use core::marker::PhantomData;
+use rhai::{EvalAltResult, Module, ModuleResolver, Scope, Shared};
+use std::collections::BTreeMap;
+use std::prelude::v1::*;
+use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct InimModuleResolver<C, F>
