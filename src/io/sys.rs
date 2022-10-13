@@ -9,3 +9,32 @@ pub trait Sys: Clone + 'static {
     fn time() -> f64;
     fn path() -> String;
 }
+
+#[derive(Clone)]
+pub struct DummySys;
+
+impl Sys for DummySys {
+    fn ls(_path: &str) -> Vec<Dynamic> {
+        vec![]
+    }
+
+    fn mkdir(_path: &str) -> bool {
+        false
+    }
+
+    fn rm(_path: &str) -> bool {
+        false
+    }
+
+    fn rmdir(_path: &str) -> bool {
+        false
+    }
+
+    fn time() -> f64 {
+        0.0
+    }
+
+    fn path() -> String {
+        "".to_string()
+    }
+}

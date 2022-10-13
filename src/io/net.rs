@@ -25,27 +25,3 @@ pub trait Socket: Clone + 'static {
 }
 
 pub trait Request: Clone + 'static {} // TODO
-
-// pub trait Net: Clone + Socket {}
-// #[derive(Clone)]
-// pub struct Net<S, R>
-// where
-//     S: Socket + 'static,
-//     R: Request + 'static,
-// {
-//     _s_phantom: PhantomData<S>,
-//     _r_phantom: PhantomData<R>,
-// }
-
-// impl<S, R> Net<S, R>
-// where
-//     S: Socket + 'static,
-//     R: Request + 'static,
-// {
-//     pub fn new() -> Self {
-//         Self {
-//             _s_phantom: PhantomData,
-//             _r_phantom: PhantomData,
-//         }
-//     }
-// }

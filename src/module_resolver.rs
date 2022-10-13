@@ -8,8 +8,8 @@ use std::rc::Rc;
 #[derive(Clone)]
 pub struct InimModuleResolver<C, F>
 where
-    C: Console + 'static,
-    F: File + Clone + 'static,
+    C: Console,
+    F: File,
 {
     em_modules: BTreeMap<String, Rc<Module>>,
 

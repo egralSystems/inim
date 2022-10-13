@@ -38,3 +38,28 @@ pub trait File: Clone + 'static {
 
     fn write(&mut self, text: &str);
 }
+
+#[derive(Clone)]
+pub struct DummyFile;
+
+impl File for DummyFile {
+    fn open(_path: &str, _options: &str) -> Self {
+        Self
+    }
+
+    fn close(&mut self) {}
+
+    fn seek(&mut self, _offset: usize) {}
+
+    fn step(&mut self, _step: i64) {}
+
+    fn read_all(&mut self) -> String {
+        "".to_string()
+    }
+
+    fn read_char(&mut self) -> char {
+        '\0'
+    }
+
+    fn write(&mut self, _text: &str) {}
+}

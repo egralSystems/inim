@@ -6,55 +6,20 @@ use std::prelude::v1::*;
 
 use core::marker::PhantomData;
 
-use io::{console::Console, fs::File, sys::Sys};
+use io::{
+    console::{Console, DummyConsole},
+    fs::{DummyFile, File},
+    sys::{DummySys, Sys},
+};
 use module_resolver::InimModuleResolver;
-use rhai::{packages::Package, Engine, Module, Scope};
+use rhai::{packages::Package, Engine, Scope};
 use rhai_rand::RandomPackage;
 use rhai_sci::SciPackage;
 
 pub mod io;
 mod module_resolver;
 
-pub struct InimFactory<C, F, S>
-where
-    C: Console,
-    F: File,
-    S: Sys,
-{
-    mod_resolver: InimModuleResolver<C, F>,
-
-    console_phantom: PhantomData<C>,
-    f_phantom: PhantomData<F>,
-    sys_phantom: PhantomData<S>,
-}
-
-impl<C, F, S> InimFactory<C, F, S>
-where
-    C: Console,
-    F: File,
-    S: Sys,
-{
-    pub fn new() -> Self {
-        Self {
-            mod_resolver: InimModuleResolver::new(),
-
-            console_phantom: PhantomData,
-            f_phantom: PhantomData,
-            sys_phantom: PhantomData,
-        }
-    }
-
-    pub fn register_module(&mut self, path: impl Into<String>, module: Module) -> &mut Self {
-        self.mod_resolver.register_module(path, module);
-        self
-    }
-
-    pub fn build(&mut self) -> Inim<C, F, S> {
-        Inim::new(self.mod_resolver.clone())
-    }
-}
-
-pub struct Inim<'a, C, F, S>
+pub struct Inim<'a, C = DummyConsole, F = DummyFile, S = DummySys>
 where
     C: Console,
     F: File,
@@ -78,7 +43,7 @@ where
     F: File,
     S: Sys,
 {
-    pub fn new(mod_resolver: InimModuleResolver<C, F>) -> Self {
+    pub fn new() -> Self {
         let mut inim = Inim {
             engine: Engine::new(),
 
@@ -96,7 +61,7 @@ where
         inim.engine
             .register_global_module(SciPackage::new().as_shared_module())
             .register_global_module(RandomPackage::new().as_shared_module())
-            .set_module_resolver(mod_resolver);
+            .set_module_resolver(InimModuleResolver::<C, F>::new());
 
         // Register Console
         inim.engine.on_print(C::print);

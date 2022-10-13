@@ -11,13 +11,12 @@ use std::{
 
 use inim::{
     io::{console::Console, fs, sys::Sys},
-    InimFactory,
+    Inim,
 };
 use rhai::Dynamic;
 
 fn main() {
-    let mut inim_fac = InimFactory::<LinuxConsole, LinuxFile, LinuxSys>::new();
-    let mut inim = inim_fac.build();
+    let mut inim = <Inim<LinuxConsole, LinuxFile>>::new();
 
     inim.run_file("test.rhai");
 }
