@@ -1,9 +1,7 @@
-for file in ls(".") {
-    print(file);
+import "greeter" as g;
+
+print(g::greet("Bob"));
+
+for directory in ls(".") {
+	print(directory);
 }
-
-print("==============");
-print("Year:" + ((time()/31556926) + 1970));
-print("==============");
-
-print(path());

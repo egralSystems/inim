@@ -13,10 +13,22 @@ use inim::{
     io::{console::Console, fs, sys::Sys},
     Inim,
 };
+use rhai::plugin::*;
 use rhai::Dynamic;
 
+#[export_module]
+mod greeter {
+    pub fn greet(name: &str) -> String {
+        format!("Hello, {}!", name)
+    }
+}
+
 fn main() {
-    let mut inim = <Inim<LinuxConsole, LinuxFile>>::new();
+    let greeter_mod = exported_module!(greeter);
+
+    let mut inim = <Inim<LinuxConsole, LinuxFile, LinuxSys>>::new();
+    inim.register_module("greeter", greeter_mod.into())
+        .update_modules();
 
     inim.run_file("test.rhai");
 }

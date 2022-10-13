@@ -12,7 +12,7 @@ use io::{
     sys::{DummySys, Sys},
 };
 use module_resolver::InimModuleResolver;
-use rhai::{packages::Package, Engine, Scope};
+use rhai::{packages::Package, Engine, Module, Scope};
 use rhai_rand::RandomPackage;
 use rhai_sci::SciPackage;
 
@@ -26,6 +26,8 @@ where
     S: Sys,
 {
     engine: Engine,
+
+    mod_resolver: InimModuleResolver<C, F>,
 
     scopes: Vec<Scope<'a>>,
     current_scope: usize,
@@ -47,6 +49,8 @@ where
         let mut inim = Inim {
             engine: Engine::new(),
 
+            mod_resolver: InimModuleResolver::<C, F>::new(),
+
             scopes: Vec::new(),
             current_scope: 0,
 
@@ -61,7 +65,7 @@ where
         inim.engine
             .register_global_module(SciPackage::new().as_shared_module())
             .register_global_module(RandomPackage::new().as_shared_module())
-            .set_module_resolver(InimModuleResolver::<C, F>::new());
+            .set_module_resolver(inim.mod_resolver.clone());
 
         // Register Console
         inim.engine.on_print(C::print);
@@ -105,6 +109,16 @@ where
         inim.scopes.push(Scope::<'a>::new());
 
         inim
+    }
+
+    pub fn register_module(&mut self, path: impl Into<String>, module: Module) -> &mut Self {
+        self.mod_resolver.register_module(path, module);
+        self
+    }
+
+    pub fn update_modules(&mut self) -> &mut Self {
+        self.engine.set_module_resolver(self.mod_resolver.clone());
+        self
     }
 
     pub fn set_scope(&mut self, scope_num: usize) -> &mut Self {
