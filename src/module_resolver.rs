@@ -2,6 +2,7 @@ use crate::io::{console::Console, fs::File};
 use core::marker::PhantomData;
 use rhai::{EvalAltResult, Module, ModuleResolver, Scope, Shared};
 use std::collections::BTreeMap;
+#[cfg(not(features = "std"))]
 use std::prelude::v1::*;
 use std::rc::Rc;
 
@@ -65,7 +66,7 @@ where
         let path = path.as_str();
 
         let mut src = F::open(path, "r");
-        let mut ast = match engine.compile(src.read_all()) {
+        let mut ast = match engine.compile(src.read_string_all()) {
             Ok(ast) => ast,
             Err(error) => {
                 C::debug(

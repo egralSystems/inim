@@ -1,5 +1,15 @@
-use rhai::Dynamic;
+use rhai::{Dynamic, Engine};
 use std::prelude::v1::*;
+
+pub fn register_sys<S: Sys>(engine: &mut Engine) {
+    engine
+        .register_fn("ls", S::ls)
+        .register_fn("rm", S::rm)
+        .register_fn("mkdir", S::mkdir)
+        .register_fn("rmdir", S::rmdir)
+        .register_fn("time", S::time)
+        .register_fn("path", S::path);
+}
 
 pub trait Sys: Clone + 'static {
     fn ls(path: &str) -> Vec<Dynamic>;
@@ -8,33 +18,4 @@ pub trait Sys: Clone + 'static {
     fn rmdir(path: &str) -> bool;
     fn time() -> f64;
     fn path() -> String;
-}
-
-#[derive(Clone)]
-pub struct DummySys;
-
-impl Sys for DummySys {
-    fn ls(_path: &str) -> Vec<Dynamic> {
-        vec![]
-    }
-
-    fn mkdir(_path: &str) -> bool {
-        false
-    }
-
-    fn rm(_path: &str) -> bool {
-        false
-    }
-
-    fn rmdir(_path: &str) -> bool {
-        false
-    }
-
-    fn time() -> f64 {
-        0.0
-    }
-
-    fn path() -> String {
-        "".to_string()
-    }
 }
