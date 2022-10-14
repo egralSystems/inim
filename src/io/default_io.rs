@@ -16,8 +16,10 @@ mod standard {
     use stdstd::{
         cell::RefCell,
         env::current_dir,
+        format,
         fs::{create_dir_all, read_dir, remove_dir, remove_file, File},
-        io::Read,
+        io::{Read, Write},
+        net::{TcpListener, TcpStream},
         os::unix::prelude::FileExt,
         path::Path,
         prelude::v1::*,
@@ -140,11 +142,20 @@ mod standard {
         }
 
         fn read_blob_all(&mut self) -> Vec<u8> {
-            vec![]
+            let mut buffer = Vec::new();
+
+            self.file.borrow_mut().read_to_end(&mut buffer).unwrap();
+
+            buffer
         }
 
         fn read_blob_amount(&mut self, amount: i64) -> Vec<u8> {
-            vec![]
+            let mut buffer = Vec::new();
+            buffer.resize(amount as usize, 0);
+
+            self.file.borrow_mut().read_exact(&mut buffer).unwrap();
+
+            buffer
         }
 
         fn read_string_all(&mut self) -> String {
@@ -153,54 +164,147 @@ mod standard {
             out
         }
 
-        fn write_string(&mut self, text: &str) {}
+        fn write_string(&mut self, text: &str) {
+            self.file
+                .borrow_mut()
+                .write_all_at(text.as_bytes(), self.offset)
+                .unwrap();
+        }
 
-        fn write_blob(&mut self, blob: Vec<u8>) {}
+        fn write_blob(&mut self, blob: Vec<u8>) {
+            self.file
+                .borrow_mut()
+                .write_all_at(&blob, self.offset)
+                .unwrap();
+        }
     }
 
     #[derive(Clone)]
-    pub struct StdNet;
+    pub struct StdNet {
+        addr: String,
+        listener: Option<Rc<RefCell<TcpListener>>>,
+        stream: Option<Rc<RefCell<TcpStream>>>,
+        timeout: Option<i64>,
+    }
 
     impl Net for StdNet {
         fn tcp() -> Self {
-            StdNet
+            StdNet {
+                listener: None,
+                stream: None,
+                timeout: None,
+                addr: "".into(),
+            }
         }
 
-        fn udp() -> Self {
-            StdNet
+        fn bind(&mut self, addr: &str, port: i64) -> String {
+            self.addr = format!("{}:{}", addr, port);
+            let listener = match TcpListener::bind(self.addr.clone()) {
+                Ok(listener) => listener,
+                Err(_) => return "Error: Bind failed!".into(),
+            };
+
+            self.listener = Some(Rc::new(RefCell::new(listener)));
+
+            "OK".into()
         }
 
-        fn bind(&mut self, addr: &str, port: u16) -> String {
-            "".into()
+        fn connect(&mut self, addr: &str, port: i64) -> String {
+            self.addr = format!("{}:{}", addr, port);
+            println!("addr: {}", self.addr);
+            let stream = match TcpStream::connect(addr.clone()) {
+                Ok(stream) => stream,
+                Err(_) => return "Error: Connecting failure!".into(),
+            };
+
+            self.stream = Some(Rc::new(RefCell::new(stream)));
+
+            "OK".into()
         }
 
-        fn connect(&mut self, addr: &str, port: u16) -> String {
-            "".into()
+        fn set_timeout(&mut self, timeout: i64) {
+            self.timeout = Some(timeout);
         }
-
-        fn set_timeout(&mut self, timeout: i64) {}
 
         fn accept(&mut self) -> Self {
-            StdNet
+            if let Some(listener) = &self.listener {
+                let (stream, addr) = listener.borrow_mut().accept().unwrap();
+
+                return StdNet {
+                    addr: addr.to_string(),
+                    listener: None,
+                    stream: Some(Rc::new(RefCell::new(stream))),
+                    timeout: None,
+                };
+            }
+
+            StdNet {
+                listener: None,
+                stream: None,
+                timeout: None,
+                addr: "".into(),
+            }
         }
 
         fn send_string(&mut self, msg: &str) -> String {
-            "".into()
+            if let Some(stream) = &self.stream {
+                if stream.borrow_mut().write_all(msg.as_bytes()).is_err() {
+                    return "Error: Sending failed!".into();
+                }
+            }
+
+            "OK".into()
         }
 
         fn recv_string(&mut self, char_count: i64) -> String {
+            if let Some(stream) = &self.stream {
+                let mut buf = Vec::with_capacity(char_count as usize);
+                stream.borrow_mut().read_exact(&mut buf).unwrap();
+
+                return String::from_utf8(buf).unwrap();
+            }
+
             "".into()
         }
 
         fn recv_line(&mut self) -> String {
+            if let Some(stream) = &self.stream {
+                let mut buf = String::new();
+                stream.borrow_mut().read_to_string(&mut buf).unwrap();
+
+                return buf;
+            }
+
             "".into()
         }
 
         fn send_blob(&mut self, msg: Vec<u8>) -> String {
+            if let Some(stream) = &self.stream {
+                stream.borrow_mut().write_all(&msg).unwrap();
+            }
+
             "".into()
         }
 
-        fn recv_blob(&mut self, byte_count: i64) -> Vec<u8> {
+        fn recv_blob_amount(&mut self, byte_count: i64) -> Vec<u8> {
+            if let Some(stream) = &self.stream {
+                let mut buf = Vec::with_capacity(byte_count as usize);
+                stream.borrow_mut().read_exact(&mut buf).unwrap();
+
+                return buf;
+            }
+
+            vec![]
+        }
+
+        fn recv_blob(&mut self) -> Vec<u8> {
+            if let Some(stream) = &self.stream {
+                let mut buf = Vec::new();
+                stream.borrow_mut().read_to_end(&mut buf).unwrap();
+
+                return buf;
+            }
+
             vec![]
         }
 
@@ -293,10 +397,6 @@ mod dummy {
 
     impl Net for DummyNet {
         fn tcp() -> Self {
-            Self
-        }
-
-        fn udp() -> Self {
             Self
         }
 
