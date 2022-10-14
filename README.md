@@ -49,5 +49,17 @@ path();          // Returns current directory string
 ### Networking
 
 ```
-WIP
+let net = net(); // Create a network instance
+
+// Server
+if net.bind("<addr>:<port>") == "OK" { // Bind server to address
+  // Success
+} else {
+  // Fail
+}
+
+loop {
+  let client = net.accept(); // Wait for clients
+  print(client.read_line()); // Read whole line from client
+}
 ```

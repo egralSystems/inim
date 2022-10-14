@@ -308,6 +308,10 @@ mod standard {
         }
 
         fn close(&mut self) {}
+
+        fn addr(&mut self) -> String {
+            self.addr.clone()
+        }
     }
 }
 
@@ -431,6 +435,10 @@ mod dummy {
 
         fn recv_blob(&mut self, byte_count: i64) -> Vec<u8> {
             vec![]
+        }
+
+        fn addr(&mut self) -> String {
+            "".into()
         }
 
         fn close(&mut self) {}

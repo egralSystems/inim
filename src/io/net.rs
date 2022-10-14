@@ -5,22 +5,25 @@ use rhai::Engine;
 pub fn register_net<N: Net>(engine: &mut Engine) {
     engine
         .register_type_with_name::<N>("Net")
-        .register_fn("tcp", N::tcp)
+        .register_fn("net", N::tcp)
+        .register_get("addr", N::addr)
         .register_fn("bind", N::bind)
         .register_fn("connect", N::connect)
         .register_fn("set_timeout", N::set_timeout)
         .register_fn("accept", N::accept)
-        .register_fn("send_string", N::send_string)
-        .register_fn("send_blob", N::send_blob)
-        .register_fn("recv_string", N::recv_string)
-        .register_fn("recv_line", N::recv_line)
-        .register_fn("recv_blob", N::recv_blob_amount)
-        .register_fn("recv_blob", N::recv_blob)
+        .register_fn("write", N::send_string)
+        .register_fn("write", N::send_blob)
+        .register_fn("read_str", N::recv_string)
+        .register_fn("read_line", N::recv_line)
+        .register_fn("read_blob", N::recv_blob_amount)
+        .register_fn("read_blob", N::recv_blob)
         .register_fn("close", N::close);
 }
 
 pub trait Net: Clone + 'static {
     fn tcp() -> Self; // Create TCP socket
+
+    fn addr(&mut self) -> String;
 
     fn bind(&mut self, addr: &str) -> String; // Start server
     fn connect(&mut self, addr: &str) -> String; // Connect to server
