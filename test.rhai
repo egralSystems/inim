@@ -1,11 +1,3 @@
-import "greeter" as g;
-
-print(g::greet("Bob"));
-
-for directory in ls(".") {
-	print(directory);
-}
-
-let google = tcp();
-debug(google.connect("176.9.48.143", 80));
-// print(google.recv);
+let client = tcp();
+debug(client.connect("127.0.0.1:6969"));
+client.send_string("Hello world!");

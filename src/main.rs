@@ -1,3 +1,5 @@
+use std::env;
+
 use inim::prelude::Inim;
 use rhai::plugin::*;
 use rhai::Dynamic;
@@ -10,11 +12,12 @@ mod greeter {
 }
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
     let greeter_mod = exported_module!(greeter);
 
     let mut inim = <Inim>::new();
     inim.register_module("greeter", greeter_mod.into())
         .update_modules();
 
-    inim.run_file("test.rhai");
+    inim.run_file(args[1].as_str());
 }

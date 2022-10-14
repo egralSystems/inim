@@ -197,8 +197,8 @@ mod standard {
             }
         }
 
-        fn bind(&mut self, addr: &str, port: i64) -> String {
-            self.addr = format!("{}:{}", addr, port);
+        fn bind(&mut self, addr: &str) -> String {
+            self.addr = addr.into();
             let listener = match TcpListener::bind(self.addr.clone()) {
                 Ok(listener) => listener,
                 Err(_) => return "Error: Bind failed!".into(),
@@ -209,12 +209,11 @@ mod standard {
             "OK".into()
         }
 
-        fn connect(&mut self, addr: &str, port: i64) -> String {
-            self.addr = format!("{}:{}", addr, port);
-            println!("addr: {}", self.addr);
-            let stream = match TcpStream::connect(addr.clone()) {
+        fn connect(&mut self, addr: &str) -> String {
+            self.addr = addr.into();
+            let stream = match TcpStream::connect(self.addr.clone()) {
                 Ok(stream) => stream,
-                Err(_) => return "Error: Connecting failure!".into(),
+                Err(err) => return format!("Error: {:?}", err),
             };
 
             self.stream = Some(Rc::new(RefCell::new(stream)));

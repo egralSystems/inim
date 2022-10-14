@@ -22,8 +22,8 @@ pub fn register_net<N: Net>(engine: &mut Engine) {
 pub trait Net: Clone + 'static {
     fn tcp() -> Self; // Create TCP socket
 
-    fn bind(&mut self, addr: &str, port: i64) -> String; // Start server
-    fn connect(&mut self, addr: &str, port: i64) -> String; // Connect to server
+    fn bind(&mut self, addr: &str) -> String; // Start server
+    fn connect(&mut self, addr: &str) -> String; // Connect to server
 
     fn set_timeout(&mut self, timeout: i64); // Set recv timeout
 
