@@ -5,9 +5,9 @@ use rhai_sci::SciPackage;
 use crate::{
     io::{
         console::{register_console, Console},
-        dummy::Dummy,
+        default_io::*,
         fs::{register_file, File},
-        net::{register_socket, Net},
+        net::{register_net, Net},
         sys::{register_sys, Sys},
     },
     module_resolver::InimModuleResolver,
@@ -17,7 +17,7 @@ use core::marker::PhantomData;
 
 use std::prelude::v1::*;
 
-pub struct Inim<'a, C = Dummy, F = Dummy, S = Dummy, N = Dummy>
+pub struct Inim<'a, C = DefaultConsole, F = DefaultFile, S = DefaultSys, N = DefaultNet>
 where
     C: Console,
     F: File,
@@ -72,7 +72,7 @@ where
         register_console::<C>(&mut inim.engine);
         register_file::<F>(&mut inim.engine);
         register_sys::<S>(&mut inim.engine);
-        register_socket::<N>(&mut inim.engine);
+        register_net::<N>(&mut inim.engine);
 
         // Add default scope
         inim.scopes.push(Scope::<'a>::new());

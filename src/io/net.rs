@@ -2,7 +2,7 @@ use std::prelude::v1::*;
 
 use rhai::Engine;
 
-pub fn register_socket<S: Net>(engine: &mut Engine) {
+pub fn register_net<S: Net>(engine: &mut Engine) {
     engine
         .register_type_with_name::<S>("Socket")
         .register_fn("tcp", S::tcp)

@@ -1,0 +1,339 @@
+#[cfg(not(feature = "std"))]
+pub use dummy::{
+    DummyConsole as DefaultConsole, DummyFile as DefaultFile, DummyNet as DefaultNet,
+    DummySys as DefaultSys,
+};
+#[cfg(feature = "std")]
+pub use standard::{
+    StdConsole as DefaultConsole, StdFile as DefaultFile, StdNet as DefaultNet,
+    StdSys as DefaultSys,
+};
+
+#[cfg(feature = "std")]
+mod standard {
+    extern crate std as stdstd;
+
+    use stdstd::{
+        cell::RefCell,
+        env::current_dir,
+        fs::{create_dir_all, read_dir, remove_dir, remove_file, File},
+        io::Read,
+        os::unix::prelude::FileExt,
+        path::Path,
+        prelude::v1::*,
+        println,
+        rc::Rc,
+        time::{SystemTime, UNIX_EPOCH},
+        vec,
+    };
+
+    use rhai::Dynamic;
+
+    use crate::prelude::net::Net;
+
+    use super::{super::console::Console, super::fs, super::sys::Sys};
+
+    #[derive(Clone)]
+    pub struct StdSys;
+
+    impl Sys for StdSys {
+        fn ls(path: &str) -> Vec<Dynamic> {
+            let mut table: Vec<Dynamic> = Vec::new();
+
+            for file in read_dir(path).unwrap() {
+                table.push(Dynamic::from(file.unwrap().path().display().to_string()));
+            }
+
+            table
+        }
+
+        fn mkdir(path: &str) -> bool {
+            create_dir_all(path).is_ok()
+        }
+
+        fn rm(path: &str) -> bool {
+            remove_file(path).is_ok()
+        }
+
+        fn rmdir(path: &str) -> bool {
+            remove_dir(path).is_ok()
+        }
+
+        fn time() -> f64 {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f64()
+        }
+
+        fn path() -> String {
+            current_dir().unwrap().display().to_string()
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct StdConsole;
+
+    impl Console for StdConsole {
+        fn print(text: &str) {
+            println!("{}", text);
+        }
+
+        fn debug(text: &str) {
+            println!("{}", text);
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct StdFile {
+        file: Rc<RefCell<File>>,
+        offset: u64,
+    }
+
+    impl fs::File for StdFile {
+        fn open(path: &str, options: &str) -> Self {
+            let path = Path::new(path);
+
+            let readable = options.contains('r');
+            let writable = options.contains('w');
+            let appendable = options.contains('a');
+
+            let file = File::options()
+                .read(readable)
+                .write(writable)
+                .append(appendable)
+                .create(writable || appendable)
+                .open(path)
+                .unwrap();
+
+            StdFile {
+                file: Rc::new(RefCell::new(file)),
+                offset: 0,
+            }
+        }
+
+        fn close(&mut self) {
+            drop(&self.file);
+        }
+
+        fn read_char(&mut self) -> char {
+            let mut buf: [u8; 1] = [0];
+            self.file
+                .borrow_mut()
+                .read_at(&mut buf, self.offset)
+                .unwrap();
+            self.offset += 1;
+
+            buf[0] as char
+        }
+
+        fn seek(&mut self, offset: usize) {
+            self.offset = offset as u64;
+        }
+
+        fn step(&mut self, step: i64) {
+            if step.is_negative() {
+                self.offset -= step.wrapping_abs() as u64;
+            } else {
+                self.offset += step as u64;
+            }
+        }
+
+        fn read_blob_all(&mut self) -> Vec<u8> {
+            vec![]
+        }
+
+        fn read_blob_amount(&mut self, amount: i64) -> Vec<u8> {
+            vec![]
+        }
+
+        fn read_string_all(&mut self) -> String {
+            let mut out = String::new();
+            self.file.borrow_mut().read_to_string(&mut out).unwrap();
+            out
+        }
+
+        fn write_string(&mut self, text: &str) {}
+
+        fn write_blob(&mut self, blob: Vec<u8>) {}
+    }
+
+    #[derive(Clone)]
+    pub struct StdNet;
+
+    impl Net for StdNet {
+        fn tcp() -> Self {
+            StdNet
+        }
+
+        fn udp() -> Self {
+            StdNet
+        }
+
+        fn bind(&mut self, addr: &str, port: u16) -> String {
+            "".into()
+        }
+
+        fn connect(&mut self, addr: &str, port: u16) -> String {
+            "".into()
+        }
+
+        fn set_timeout(&mut self, timeout: i64) {}
+
+        fn accept(&mut self) -> Self {
+            StdNet
+        }
+
+        fn send_string(&mut self, msg: &str) -> String {
+            "".into()
+        }
+
+        fn recv_string(&mut self, char_count: i64) -> String {
+            "".into()
+        }
+
+        fn recv_line(&mut self) -> String {
+            "".into()
+        }
+
+        fn send_blob(&mut self, msg: Vec<u8>) -> String {
+            "".into()
+        }
+
+        fn recv_blob(&mut self, byte_count: i64) -> Vec<u8> {
+            vec![]
+        }
+
+        fn close(&mut self) {}
+    }
+}
+
+#[cfg(not(feature = "std"))]
+mod dummy {
+    use std::prelude::v1::*;
+
+    use rhai::Dynamic;
+
+    use super::{super::console::Console, super::fs::File, super::net::Net, super::sys::Sys};
+
+    #[derive(Clone)]
+    pub struct DummyConsole;
+
+    impl Console for DummyConsole {
+        fn print(_text: &str) {}
+        fn debug(_text: &str) {}
+    }
+
+    #[derive(Clone)]
+    pub struct DummyFile;
+
+    impl File for DummyFile {
+        fn open(_path: &str, _options: &str) -> Self {
+            Self
+        }
+
+        fn close(&mut self) {}
+
+        fn seek(&mut self, _offset: usize) {}
+
+        fn step(&mut self, _step: i64) {}
+
+        fn read_char(&mut self) -> char {
+            '\0'
+        }
+
+        fn read_blob_all(&mut self) -> Vec<u8> {
+            vec![]
+        }
+
+        fn read_blob_amount(&mut self, amount: i64) -> Vec<u8> {
+            vec![]
+        }
+
+        fn read_string_all(&mut self) -> String {
+            "".to_string()
+        }
+
+        fn write_string(&mut self, text: &str) {}
+
+        fn write_blob(&mut self, blob: Vec<u8>) {}
+    }
+
+    #[derive(Clone)]
+    pub struct DummySys;
+
+    impl Sys for DummySys {
+        fn ls(_path: &str) -> Vec<Dynamic> {
+            vec![]
+        }
+
+        fn mkdir(_path: &str) -> bool {
+            false
+        }
+
+        fn rm(_path: &str) -> bool {
+            false
+        }
+
+        fn rmdir(_path: &str) -> bool {
+            false
+        }
+
+        fn time() -> f64 {
+            0.0
+        }
+
+        fn path() -> String {
+            "".to_string()
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct DummyNet;
+
+    impl Net for DummyNet {
+        fn tcp() -> Self {
+            Self
+        }
+
+        fn udp() -> Self {
+            Self
+        }
+
+        fn bind(&mut self, addr: &str, port: u16) -> String {
+            "Not implemented".into()
+        }
+
+        fn connect(&mut self, addr: &str, port: u16) -> String {
+            "Not implemented".into()
+        }
+
+        fn set_timeout(&mut self, timeout: i64) {}
+
+        fn accept(&mut self) -> Self {
+            Self
+        }
+
+        fn send_string(&mut self, msg: &str) -> String {
+            "Not implemented".into()
+        }
+
+        fn recv_string(&mut self, char_count: i64) -> String {
+            "Not implemented".into()
+        }
+
+        fn recv_line(&mut self) -> String {
+            "Not implemented".into()
+        }
+
+        fn send_blob(&mut self, msg: Vec<u8>) -> String {
+            "Not implemented".into()
+        }
+
+        fn recv_blob(&mut self, byte_count: i64) -> Vec<u8> {
+            vec![]
+        }
+
+        fn close(&mut self) {}
+    }
+}
