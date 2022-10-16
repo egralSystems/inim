@@ -10,9 +10,9 @@ pub fn register_file<F: File>(engine: &mut Engine) {
         .register_fn("step", F::step)
         .register_fn("read_blob", F::read_blob_all)
         .register_fn("read_blob", F::read_blob_amount)
-        .register_fn("read_string", F::read_string_all)
-        .register_fn("read_string", F::read_string_amount)
-        .register_fn("read_string", F::read_string_until)
+        .register_fn("read_str", F::read_string_all)
+        .register_fn("read_str", F::read_string_amount)
+        .register_fn("read_str", F::read_string_until)
         .register_fn("write", F::write_blob)
         .register_fn("write", F::write_string)
         .register_fn("close", F::close);
