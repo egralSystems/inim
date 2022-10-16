@@ -72,18 +72,18 @@ loop {
 
 ### Overriding default Inim interfaces
 The interfaces are done with generics. If you want to override the defaults you need to place your interface implementations int these fields.
-`
+```
   let mut inim = <Inim<ConsoleIf, FileIf, SysIf, NetIf>>::new();
   // Replace them if you want. These interfaces are shown below.
-`
+```
 
 ### Console If
-`
+```
   pub trait Console: Clone + 'static {
       fn print(text: &str);
       fn debug(text: &str);
   }
-`
+```
 ### File If
 ```
   pub trait File: Clone + 'static {
